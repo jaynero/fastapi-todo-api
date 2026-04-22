@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from app.api.v1.endpoints import auth
 from app.core.config import settings
 from app.db.session import close_db, init_db
 
@@ -32,6 +33,8 @@ app = FastAPI(
     openapi_url="/openapi.json" if settings.DEBUG else None,
     lifespan=lifespan,
 )
+
+app.include_router(auth.router, prefix=settings.API_V1_STR)
 
 
 @app.get("/health", tags=["monitoring"])
