@@ -3,6 +3,7 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
+# Reusable constrained types
 UsernameStr = Annotated[str, Field(min_length=3, max_length=50)]
 UserEmail = Annotated[EmailStr, Field(max_length=120)]
 PasswordStr = Annotated[str, Field(min_length=8, max_length=72)]
