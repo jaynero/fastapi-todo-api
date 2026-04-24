@@ -34,7 +34,7 @@ async def create_todo(
 @router.get(
     "",
     response_model=list[TodoResponse],
-    summary="List todos with optional filters and pagination",
+    summary="List todos for the current user",
 )
 async def list_todos(
     current_user_id: int = Depends(get_current_user),
