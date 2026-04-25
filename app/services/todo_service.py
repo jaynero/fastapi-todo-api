@@ -45,14 +45,37 @@ class TodoService:
         completed: bool | None = None,
         due_before: datetime | None = None,
         due_after: datetime | None = None,
+        skip: int = 0,
+        limit: int = 20,
     ):
-        """Get all todos for the current user"""
+        """Get todos with optional filtering and pagination"""
+
+        # Validate pagination bounds
+        if skip < 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="skip must be a non-negative integer",
+            )
+        if not (1 <= limit <= 100):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="limit must be between 1 and 100",
+            )
+
+        # Validate date range if both are provided
+        if due_before and due_after and due_after > due_before:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="due_after must be earlier than due_before",
+            )
 
         return await self.repo.get_todos_by_user(
             user_id=user_id,
             completed=completed,
             due_before=due_before,
             due_after=due_after,
+            skip=skip,
+            limit=limit,
         )
 
     async def update_todo(self, todo_id: int, user_id: int, todo_update: TodoUpdate):
@@ -69,10 +92,11 @@ class TodoService:
             )
         return todo
 
-    async def delete_todo(self, todo_id: int, user_id: int):
+    async def delete_todo(self, todo_id: int, user_id: int) -> None:
         """Delete a todo by ID"""
         deleted = await self.repo.delete_todo(todo_id, user_id)
         if not deleted:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Todo not found"
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Todo not found",
             )

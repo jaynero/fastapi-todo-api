@@ -46,12 +46,38 @@ class TodoRepository:
         completed: Optional[bool] = None,
         due_before: Optional[datetime] = None,
         due_after: Optional[datetime] = None,
+        skip: int = 0,
+        limit: int = 20,
     ) -> Sequence[Todo]:
-        """Get all todos for a user — latest first"""
+        """
+        Get todos for a user with optional filtering and pagination.
+
+        Filters:
+            - completed: True/False to filter by completion status
+            - due_before: only todos due before this datetime
+            - due_after:  only todos due after this datetime
+
+        Pagination:
+            - skip: number of records to skip (offset)
+            - limit: maximum number of records to return
+        """
 
         query = (
             select(Todo).where(Todo.user_id == user_id).order_by(Todo.created_at.desc())
         )
+
+        # Apply filters only when provided — unset filters don't affect the query
+        if completed is not None:
+            query = query.where(Todo.completed == completed)
+
+        if due_before is not None:
+            query = query.where(Todo.due_date <= due_before)
+
+        if due_after is not None:
+            query = query.where(Todo.due_date >= due_after)
+
+        # Apply pagination last, after all filters
+        query = query.offset(skip).limit(limit)
 
         result = await self.db.execute(query)
         return result.scalars().all()

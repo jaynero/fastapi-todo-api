@@ -1,4 +1,7 @@
-from fastapi import APIRouter, Depends, status
+from datetime import datetime
+from typing import Optional
+
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import get_current_user
@@ -24,7 +27,7 @@ def get_todo_service(db: AsyncSession = Depends(get_db)) -> TodoService:
 )
 async def create_todo(
     todo_create: TodoCreate,
-    current_user_id: int = Depends(get_current_user),
+    current_user_id: int = Depends(get_current_user),  # Authentication required!
     service: TodoService = Depends(get_todo_service),
 ):
     """Create a new todo item for the authenticated user."""
@@ -34,14 +37,56 @@ async def create_todo(
 @router.get(
     "",
     response_model=list[TodoResponse],
-    summary="List todos for the current user",
+    summary="List todos with optional filters and pagination",
 )
 async def list_todos(
+    # --- Filtering ---
+    completed: Optional[bool] = Query(
+        default=None,
+        description="Filter by completion status: true or false",
+    ),
+    due_before: Optional[datetime] = Query(
+        default=None,
+        description="Return todos due before this datetime (ISO 8601)",
+    ),
+    due_after: Optional[datetime] = Query(
+        default=None,
+        description="Return todos due after this datetime (ISO 8601)",
+    ),
+    # --- Pagination ---
+    skip: int = Query(
+        default=0,
+        ge=0,
+        description="Number of records to skip (offset)",
+    ),
+    limit: int = Query(
+        default=20,
+        ge=1,
+        le=100,
+        description="Maximum number of records to return (max 100)",
+    ),
+    # --- Auth & service ---
     current_user_id: int = Depends(get_current_user),
     service: TodoService = Depends(get_todo_service),
 ):
-    """Get todos for the authenticated user."""
-    return await service.list_todos(user_id=current_user_id)
+    """
+    Get todos for the authenticated user.
+
+    Supports filtering by:
+    - **completed**: `true` or `false`
+    - **due_before**: ISO 8601 datetime, e.g. `2026-12-31T23:59:59`
+    - **due_after**: ISO 8601 datetime
+
+    Supports pagination via **skip** and **limit**.
+    """
+    return await service.list_todos(
+        user_id=current_user_id,
+        completed=completed,
+        due_before=due_before,
+        due_after=due_after,
+        skip=skip,
+        limit=limit,
+    )
 
 
 @router.get(
