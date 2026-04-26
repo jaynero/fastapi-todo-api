@@ -4,18 +4,13 @@ from fastapi import FastAPI
 
 from app.api.v1.router import api_router
 from app.core.config import settings
-from app.db.session import close_db, init_db
+from app.db.session import close_db
 
 
 # Startup/shutdown events
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Run at startup and shutdown"""
-    # STARTUP
-    print("Initializing database...")
-    await init_db()
-    print("Database ready")
-
     yield
 
     # SHUTDOWN
@@ -39,5 +34,4 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 
 @app.get("/health", tags=["monitoring"])
 async def health_check():
-    return {"status": "healthy"}
     return {"status": "healthy"}
